@@ -1,0 +1,12 @@
+# Local runtime state / secrets
+.session_secret
+sysboard.log
+projects.json
+projects.json.bak
+.publish-backup-*/
+__pycache__/
+*.py[cod]
+
+# Editor / OS noise
+.DS_Store
+*.swp

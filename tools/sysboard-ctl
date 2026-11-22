@@ -1,0 +1,75 @@
+#!/bin/sh
+# SysBoard 服务控制助手（root 侧）
+#
+# 面板要能启停「系统级 systemd 单元」，就必须以 root 执行 systemctl。放行方式与磁盘助手
+# 一致：sudoers 只对这一个脚本免密，脚本内部再做一遍白名单校验。面板永远不会把用户输入的
+# 字符串直接拼进命令行——它只发送登记表里已存在的项目名，助手再校验一次单元名格式。
+#
+# 安装（两条命令，需要输一次密码）：
+#   sudo install -m 0755 ./tools/sysboard-ctl /usr/local/sbin/sysboard-ctl
+#   printf '%s\n' "$(id -un) ALL=(root) NOPASSWD: /usr/local/sbin/sysboard-ctl" | sudo tee /etc/sudoers.d/sysboard-ctl && sudo chmod 0440 /etc/sudoers.d/sysboard-ctl
+#
+# 验证：sudo -n /usr/local/sbin/sysboard-ctl probe     # 输出 ok 即装好
+# 卸载：sudo rm -f /usr/local/sbin/sysboard-ctl /etc/sudoers.d/sysboard-ctl
+#
+# 只放行这些动作，且只针对 .service 单元：
+#   probe                 自检，输出 ok（面板用它判断助手是否已安装）
+#   start|stop|restart    启停单元
+#   reset-failed          清除单元的失败标记（面板主动停止后，进程以非零码退出会留下假失败）
+#   is-active|is-enabled  查询状态（面板自己也能查，留着方便人工核对）
+
+set -eu
+
+ACTION="${1:-}"
+UNIT="${2:-}"
+
+log() {
+	# 每次调用都记进 syslog，root 侧留一份审计痕迹
+	command -v logger >/dev/null 2>&1 && logger -t sysboard-ctl -- "$*" || true
+}
+
+deny() {
+	echo "拒绝：$*" >&2
+	log "DENY $*"
+	exit 2
+}
+
+case "$ACTION" in
+	probe)
+		echo ok
+		exit 0
+		;;
+	start | stop | restart | reset-failed | is-active | is-enabled)
+		;;
+	*)
+		deny "未知动作「$ACTION」"
+		;;
+esac
+
+# 单元名只允许 systemd 合法字符且必须以 .service 结尾，杜绝 shell 元字符与路径穿越
+case "$UNIT" in
+	*[!A-Za-z0-9@._-]*) deny "单元名含非法字符：$UNIT" ;;
+	*.service) ;;
+	*) deny "只能操作 .service 单元：$UNIT" ;;
+esac
+[ -n "$UNIT" ] && [ "${#UNIT}" -le 128 ] || deny "单元名长度异常"
+
+# 这几个单元停下来会直接把自己锁在门外或把看板连根拔掉，一律拒绝
+# （ssh = 远程登录，user@ = 所有用户级服务包括 sysboard 自己，dbus/systemd-* = 系统骨架）
+case "$UNIT" in
+	ssh.service | sshd.service | user@*.service | dbus.service | systemd-*)
+		deny "$UNIT 属于禁止从面板操作的关键单元"
+		;;
+esac
+
+if [ "$ACTION" != "probe" ]; then
+	# 单元必须存在（loaded / masked 都行），不存在的名字一律挡掉
+	LOAD=$(systemctl show -p LoadState --value "$UNIT" 2>/dev/null || echo unknown)
+	case "$LOAD" in
+		loaded | masked) ;;
+		*) deny "$UNIT 不是一个已加载的单元（LoadState=$LOAD）" ;;
+	esac
+fi
+
+log "$ACTION $UNIT"
+exec systemctl "$ACTION" "$UNIT"

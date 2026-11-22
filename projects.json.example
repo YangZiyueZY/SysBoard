@@ -1,0 +1,44 @@
+{
+  "_说明": "SysBoard 项目管理面板的示例登记表。复制为 projects.json 后按本机情况修改；改完即时生效，无需重启。",
+  "_格式": [
+    "name       必填，唯一 id；systemd 项目同时是单元名（可另配 unit）",
+    "title      可选，卡片显示名，缺省用 name",
+    "desc       可选，一行说明",
+    "kind       必填：systemd | docker | port",
+    "scope      systemd 项目：user（systemctl --user，零权限）| system（需 sudo 免密助手 sysboard-ctl）",
+    "unit       systemd 项目可省略，缺省 name + .service；docker 项目用 container 指定容器名，缺省 name",
+    "port       可选，项目自己的 Web 端口；有端口时卡片显示「:端口」链接直达",
+    "path       可选，链接追加的路径",
+    "link       可选，缺省 true；纯 TCP 端口设为 false 不出链接",
+    "group      可选，分组名，面板按分组分区显示",
+    "order      可选，组内排序，小的在前",
+    "hidden     可选，true 时不在面板显示",
+    "除登记表外，面板还会自动发现本机的 systemd 单元文件与 Docker 容器；登记表里的写法优先。"
+  ],
+  "projects": [
+    {
+      "name": "example-web",
+      "title": "示例 Web 服务",
+      "desc": "用 systemd 管理的示例服务（请替换为本机项目）",
+      "kind": "systemd",
+      "scope": "user",
+      "port": 8080,
+      "group": "示例",
+      "order": 10,
+      "link": true
+    },
+    {
+      "name": "example-api",
+      "title": "示例 API",
+      "desc": "纯 TCP 服务，只显示端口不生成链接",
+      "kind": "port",
+      "port": 9000,
+      "link": false,
+      "group": "示例",
+      "order": 20
+    }
+  ],
+  "groups": [
+    "示例"
+  ]
+}

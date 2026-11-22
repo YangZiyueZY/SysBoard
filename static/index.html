@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="build" content="__BUILD__">
+<title>系统看板</title>
+<link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32.png">
+<link rel="shortcut icon" href="/favicon.ico">
+<link rel="stylesheet" href="/static/style.css">
+<script src="/static/vendor/echarts.min.js"></script>
+</head>
+<body>
+<div class="page">
+
+  <header class="masthead">
+    <div>
+      <h1>系统看板</h1>
+      <p class="subtitle" id="subtitle">正在连接…</p>
+    </div>
+    <div class="masthead-clock">
+      <div class="clock" id="clock">--:--:--</div>
+      <div class="clock-date" id="clock-date"></div>
+    </div>
+  </header>
+
+  <main class="grid">
+
+    <section class="card span-7" id="cpu-card">
+      <div class="card-head">
+        <h2>处理器</h2>
+        <span class="card-note" id="cpu-note">–</span>
+      </div>
+      <div class="cpu-body">
+        <div class="big-stat">
+          <div><span class="big-num" id="cpu-percent">–</span><span class="big-unit">%</span></div>
+          <div class="stat-label">总使用率</div>
+        </div>
+        <div class="chart chart-cores" id="chart-cores"></div>
+      </div>
+      <div class="chart chart-tall" id="chart-cpu"></div>
+    </section>
+
+    <section class="card span-5" id="mem-card">
+      <div class="card-head">
+        <h2>内存</h2>
+        <span class="card-note" id="mem-note">–</span>
+      </div>
+      <div class="donut-wrap">
+        <div class="chart chart-donut" id="chart-mem"></div>
+        <div class="donut-center dc-mem">
+          <span class="donut-num" id="mem-percent">–</span>
+          <span class="donut-label">内存</span>
+        </div>
+        <div class="donut-center dc-swap">
+          <span class="donut-num" id="swap-percent">–</span>
+          <span class="donut-label">Swap</span>
+        </div>
+      </div>
+      <div class="chart chart-tall" id="chart-mem-history"></div>
+    </section>
+
+    <section class="card span-4" id="disk-card">
+      <div class="card-head">
+        <h2>磁盘</h2>
+        <button class="disk-btn" id="disk-manage" type="button">磁盘管理<span class="disk-pending" id="disk-pending" hidden></span></button>
+      </div>
+      <div class="donut-wrap">
+        <div class="chart chart-donut" id="chart-disk"></div>
+        <div class="donut-center">
+          <span class="donut-num" id="disk-percent">–</span>
+          <span class="donut-label" id="disk-detail">–</span>
+        </div>
+      </div>
+      <div class="mount-list" id="mount-list"></div>
+      <div class="drive-list" id="drive-list"></div>
+      <div class="io-row">
+        <div class="io-item"><span class="io-label">合计读取</span><span class="io-value" id="disk-read">–</span></div>
+        <div class="io-item"><span class="io-label">合计写入</span><span class="io-value" id="disk-write">–</span></div>
+      </div>
+      <div class="chart chart-tall" id="chart-disk-io"></div>
+    </section>
+
+    <section class="card span-4" id="net-card">
+      <div class="card-head">
+        <h2>网络</h2>
+        <span class="card-note" id="net-note">–</span>
+      </div>
+      <div class="io-row">
+        <div class="io-item"><span class="io-label">下载</span><span class="io-value io-down" id="net-down">–</span></div>
+        <div class="io-item"><span class="io-label">上传</span><span class="io-value io-up" id="net-up">–</span></div>
+      </div>
+      <div class="io-row io-total">
+        <div class="io-item"><span class="io-label">累计下载</span><span class="io-value io-down" id="net-down-total">–</span></div>
+        <div class="io-item"><span class="io-label">累计上传</span><span class="io-value io-up" id="net-up-total">–</span></div>
+      </div>
+      <p class="io-foot" id="net-foot">–</p>
+      <div class="chart chart-tall" id="chart-net"></div>
+    </section>
+
+    <section class="card span-4" id="temp-card">
+      <div class="card-head">
+        <h2>温度</h2>
+        <span class="card-note">SoC · cpu-thermal</span>
+      </div>
+      <div class="temp-body">
+        <span class="big-num temp-num" id="temp-value">–</span><span class="big-unit">°C</span>
+      </div>
+      <div class="temp-sub" id="temp-drive">–</div>
+      <div class="chart chart-tall" id="chart-temp"></div>
+    </section>
+
+    <section class="card span-6">
+      <div class="card-head">
+        <h2>进程</h2>
+        <span class="card-note">Top 10 · 按 CPU · 点击表头排序</span>
+      </div>
+      <table class="proc-table">
+        <thead>
+          <tr>
+            <th class="num" data-key="pid">PID</th>
+            <th class="left" data-key="name">名称</th>
+            <th class="left" data-key="user">用户</th>
+            <th class="num sortable active" data-key="cpu">CPU %</th>
+            <th class="num sortable" data-key="mem">内存 %</th>
+          </tr>
+        </thead>
+        <tbody id="proc-body"></tbody>
+      </table>
+    </section>
+
+    <section class="card span-6">
+      <div class="card-head">
+        <h2>内存进程</h2>
+        <span class="card-note">Top 10 · 按内存 · 点击表头排序</span>
+      </div>
+      <table class="proc-table">
+        <thead>
+          <tr>
+            <th class="num" data-key="pid">PID</th>
+            <th class="left" data-key="name">名称</th>
+            <th class="left" data-key="user">用户</th>
+            <th class="num sortable active" data-key="mem">内存 %</th>
+            <th class="num sortable" data-key="rss">占用</th>
+          </tr>
+        </thead>
+        <tbody id="memproc-body"></tbody>
+      </table>
+    </section>
+
+    <section class="card span-12" id="projects">
+      <div class="card-head">
+        <h2>项目</h2>
+        <div class="proj-head-right">
+          <span class="card-note" id="proj-note">–</span>
+          <input class="proj-filter" id="proj-filter" type="search" placeholder="筛选…"
+                 autocomplete="off" spellcheck="false" aria-label="筛选项目">
+          <button class="proj-tool" id="group-manage" type="button" title="新建/改名/删除分组">分组管理</button>
+        </div>
+      </div>
+      <datalist id="proj-group-options"></datalist>
+      <div class="proj-groups" id="proj-groups"><p class="proj-empty">正在读取项目列表…</p></div>
+      <p class="proj-foot" id="proj-foot"></p>
+    </section>
+
+  </main>
+
+  <div class="modal-backdrop" id="disk-modal" hidden>
+    <div class="modal">
+      <div class="modal-head">
+        <h3>磁盘管理</h3>
+        <button class="modal-close" id="disk-modal-close" type="button" aria-label="关闭">×</button>
+      </div>
+      <p class="modal-note" id="disk-modal-note">检测中…</p>
+      <div class="modal-body" id="disk-modal-body"></div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="log-modal" hidden>
+    <div class="modal modal-wide">
+      <div class="modal-head">
+        <h3 id="log-title">日志</h3>
+        <button class="modal-close" id="log-modal-close" type="button" aria-label="关闭">×</button>
+      </div>
+      <p class="modal-note" id="log-note">加载中…</p>
+      <pre class="log-body" id="log-body">加载中…</pre>
+      <div class="modal-foot">
+        <label class="log-follow"><input type="checkbox" id="log-follow" checked> 自动刷新</label>
+        <span class="modal-foot-spacer"></span>
+        <button class="modal-act" id="log-refresh" type="button">刷新</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="confirm-modal" hidden>
+    <div class="modal">
+      <div class="modal-head">
+        <h3>需要确认</h3>
+        <button class="modal-close" id="confirm-modal-close" type="button" aria-label="关闭">×</button>
+      </div>
+      <p class="modal-note" id="confirm-text"></p>
+      <input class="confirm-input" id="confirm-input" type="text" placeholder="输入项目名以确认"
+             autocomplete="off" spellcheck="false">
+      <div class="modal-foot">
+        <span class="modal-foot-spacer"></span>
+        <button class="modal-act" id="confirm-cancel" type="button">取消</button>
+        <button class="modal-act danger" id="confirm-ok" type="button" disabled>确认</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="helper-modal" hidden>
+    <div class="modal modal-wide">
+      <div class="modal-head">
+        <h3>启用系统级服务控制</h3>
+        <button class="modal-close" id="helper-modal-close" type="button" aria-label="关闭">×</button>
+      </div>
+      <p class="modal-note">系统级单元（如 docker、网络隧道服务）需要 root 才能启停。面板沿用磁盘助手的做法：
+        只放行一个校验严格的脚本 <code>sysboard-ctl</code>，装完后面板自动检测到，无需重启。
+        在机器上执行下面两条命令（需要输一次密码）：</p>
+      <pre class="log-body" id="helper-cmds"></pre>
+      <p class="modal-note" id="helper-state"></p>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="group-modal" hidden>
+    <div class="modal">
+      <div class="modal-head">
+        <h3>分组管理</h3>
+        <button class="modal-close" id="group-modal-close" type="button" aria-label="关闭">×</button>
+      </div>
+      <p class="modal-note">改的是面板的分组归属（写进 projects.json 的 groups 与各项 group 字段），
+        不影响服务本身。把卡片移到某组：在卡片上点 ✎，改「分组」一栏即可，直接输新名字就是新建分组。</p>
+      <div class="modal-body" id="group-modal-body"></div>
+      <div class="modal-foot">
+        <input class="confirm-input" id="group-add-input" type="text" maxlength="40"
+               placeholder="新分组名" autocomplete="off">
+        <button class="modal-act" id="group-add-btn" type="button">新建</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" hidden></div>
+
+  <footer class="footer">SysBoard · 数据每 2 秒自动刷新 · <span id="conn-status">已连接</span> · 构建 <span id="build-id">—</span><span id="login-tools" hidden> · <button class="logout" id="logout" type="button">退出登录</button></span></footer>
+</div>
+
+<script src="/static/app.js"></script>
+</body>
+</html>
