@@ -1,7 +1,7 @@
 # SysBoard · 中文系统看板
 
 [![Python](https://img.shields.io/badge/Python-3.9%2B-blue.svg)](https://www.python.org/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](LICENSE)
 
 SysBoard 是一个轻量级中文系统监控看板，最初为一台单板机（树莓派）自研。后端只依赖 Python 标准库和 psutil，前端使用本地化的 ECharts，界面采用 Claude 风格主题，无需外网即可运行。
 
@@ -210,4 +210,4 @@ chromium --headless=new --disable-gpu --no-sandbox --window-size=1400,1100 \
 
 ## License
 
-MIT
+Apache-2.0
